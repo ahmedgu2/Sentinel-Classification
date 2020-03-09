@@ -4,7 +4,7 @@ Land Use and Land Cover Classification with Sentinel-2
 ![alt text](images/overview.jpg "overview image")
 
 This project deals with the problem of classifying land use and land cover using Sentinel-2 satellite images.
-The data used to train the models is the EuroSAT dataset can be downloaded here : [EuroSAT Dataset](http://madm.dfki.de/files/sentinel/EuroSAT.zip)
+The data used to train the models is the EuroSAT dataset which can be downloaded here : [EuroSAT Dataset](http://madm.dfki.de/files/sentinel/EuroSAT.zip)
 
 
 ## References : 
