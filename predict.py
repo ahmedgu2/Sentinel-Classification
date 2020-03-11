@@ -8,9 +8,9 @@ import pandas as pd
 from tqdm import tqdm
 
 DEVICE = 'cuda'
-BASE_MODEL = 'resnet34'
+BASE_MODEL = 'resnet50'
 DATA_ROOT = 'data/test_images/'
-BATCH_SIZE = 32
+BATCH_SIZE = 64
 
 indx_2_class = {
     0:"AnnualCrop",
@@ -66,7 +66,7 @@ def main():
 
     #create model
     model = MODEL_DISPATCHER[BASE_MODEL](pretrained=False)
-    model.load_state_dict(torch.load('model/checkpoints/resnet34-0.0966.h5'))
+    model.load_state_dict(torch.load('model/checkpoints/resnet50_model.pt'))
     model.to(DEVICE)
 
     predict(test_loader, model)
