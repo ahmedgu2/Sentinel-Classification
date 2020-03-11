@@ -9,22 +9,22 @@ from model.dispatcher import MODEL_DISPATCHER
 from sklearn.model_selection import train_test_split
 import numpy as np
 from tqdm import tqdm
+from utils.pytorchtools import EarlyStopping
 
 DEVICE = 'cuda'
 
-TRAIN_BATCH_SIZE = 64
-VALID_BATCH_SIZE = 64
-EPOCHS = 20
+TRAIN_BATCH_SIZE = 128
+VALID_BATCH_SIZE = 128
+EPOCHS = 30
 VALID_SIZE = 0.2
 
-BASE_MODEL = 'resnet34'
+BASE_MODEL = 'resnet50'
 
 
 def accuracy(outs, targets):
     top_p, top_class = outs.topk(1, dim=1)
     equals = top_class == targets.view(*top_class.shape)
     accuracy = torch.mean(equals.type(torch.FloatTensor))
-
     return accuracy
     
 
@@ -32,7 +32,7 @@ def train(dataloader, model, optimzer, criterion):
 
     model.train()
     running_loss = 0.0
-
+    
     for batch, data in tqdm(enumerate(dataloader), total=len(dataloader)):
         image = data[0]
         target = data[1]
@@ -97,8 +97,8 @@ def main():
         )
     ])
 
-    train_dataset = ImageFolder('data/', transform=train_transform)
-    valid_dataset = ImageFolder('data/', transform=valid_transforms)
+    train_dataset = ImageFolder('data/train_images/', transform=train_transform)
+    valid_dataset = ImageFolder('data/train_images/', transform=valid_transforms)
 
     #split data : get indices of train and valid set
     valid_size = 0.2
@@ -112,26 +112,28 @@ def main():
     train_sampler = SubsetRandomSampler(train_indx)
     valid_sampler = SubsetRandomSampler(valid_indx)
 
+    #create dataloaders
     train_loader = DataLoader(train_dataset, batch_size=TRAIN_BATCH_SIZE, sampler=train_sampler)
     valid_loader = DataLoader(valid_dataset, batch_size=VALID_BATCH_SIZE, sampler=valid_sampler)
 
     #create model
     model = MODEL_DISPATCHER[BASE_MODEL](pretrained=True)
+    #model.load_state_dict(torch.load("model/checkpoints/checkpoint.pt"))
     model.to(DEVICE)
 
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
+    optimizer = optim.Adam(model.parameters())
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, factor=0.2, patience=5)
+    early_stopping = EarlyStopping(patience=7, verbose=True)
     criterion = nn.CrossEntropyLoss()
 
-    best_validation = 1E18
     for e in range(EPOCHS):
         train(train_loader, model, optimizer, criterion)
         val_score = evaluate(valid_loader, model, criterion)
         scheduler.step(val_score)
-        if(val_score < best_validation):
-            best_validation = val_score
-            torch.save(model.state_dict(), "model/checkpoints/{}-{:.4f}.h5".format(BASE_MODEL, val_score))
-
+        early_stopping(val_score, model)
+        if early_stopping.early_stop:
+            print("Early stopping!")
+            break
 
 if __name__ == '__main__':
     main()
